@@ -1,0 +1,739 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "id": "8981f65a",
+   "metadata": {},
+   "source": [
+    "<font color='red'>\n",
+    "<ol type='1'>\n",
+    "<li>Cross Validation MVPA</li>\n",
+    "<ol type='a'>\n",
+    "<li>Leave-one-out cross validation 14/15</li>\n",
+    "<li>Permutation test 5/5</li>\n",
+    "</ol>\n",
+    "<li>RDMs and MDSs</li>\n",
+    "<ol type='a'>\n",
+    "<li>Setup dataset 1/1</li>\n",
+    "<li>Pixel-based representations 2/3</li>\n",
+    "<li>Early/intermediate CNN representations 4/4</li>\n",
+    "<li>Late CNN representations 2/2</li>\n",
+    "</ol>\n",
+    "</ol>\n",
+    "\n",
+    "Total: 28/30\n",
+    "</font>"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "id": "874620ef-c649-4f3c-8d28-3a200414e355",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorflow/python/framework/dtypes.py:516: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_qint8 = np.dtype([(\"qint8\", np.int8, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorflow/python/framework/dtypes.py:517: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_quint8 = np.dtype([(\"quint8\", np.uint8, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorflow/python/framework/dtypes.py:518: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_qint16 = np.dtype([(\"qint16\", np.int16, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorflow/python/framework/dtypes.py:519: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_quint16 = np.dtype([(\"quint16\", np.uint16, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorflow/python/framework/dtypes.py:520: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_qint32 = np.dtype([(\"qint32\", np.int32, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorflow/python/framework/dtypes.py:525: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  np_resource = np.dtype([(\"resource\", np.ubyte, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorboard/compat/tensorflow_stub/dtypes.py:541: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_qint8 = np.dtype([(\"qint8\", np.int8, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorboard/compat/tensorflow_stub/dtypes.py:542: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_quint8 = np.dtype([(\"quint8\", np.uint8, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorboard/compat/tensorflow_stub/dtypes.py:543: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_qint16 = np.dtype([(\"qint16\", np.int16, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorboard/compat/tensorflow_stub/dtypes.py:544: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_quint16 = np.dtype([(\"quint16\", np.uint16, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorboard/compat/tensorflow_stub/dtypes.py:545: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  _np_qint32 = np.dtype([(\"qint32\", np.int32, 1)])\n",
+      "/Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorboard/compat/tensorflow_stub/dtypes.py:550: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.\n",
+      "  np_resource = np.dtype([(\"resource\", np.ubyte, 1)])\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "import numpy as np\n",
+    "import scipy.stats as sps\n",
+    "import matplotlib.pyplot as plt\n",
+    "import numpy.random as R\n",
+    "import tensorflow as tf\n",
+    "from tensorflow.keras import models\n",
+    "from tensorflow.keras import layers\n",
+    "from tensorflow.keras.optimizers import SGD\n",
+    "from tensorflow.keras.utils import to_categorical"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "8941cc3b-0b9f-4bbd-bc0b-f52a994622e6",
+   "metadata": {},
+   "source": [
+    "<hr>\n",
+    "\n",
+    "#### read in and prepare Haxby data"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "id": "d6c4507e-f2af-43b2-aca6-58ab0740e75b",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# prepare Haxby data (see slides on Brightspace for details)\n",
+    "\n",
+    "def prep_haxby_data(dirpath = ''):\n",
+    "    ### load the functional MRI patterns ###\n",
+    "\n",
+    "    # every 2.5 seconds the scanner records a full brain image\n",
+    "    # we have extracted just voxels in ventral temporal lobe\n",
+    "    # row number corresponds to image number / time point\n",
+    "    # column number corresponds to voxel number within ventral temporal lobe\n",
+    "    # there should be 1452 images, and 32450 voxels\n",
+    "    full_patterns = np.load(dirpath + 'haxby_vt_patterns.npy')\n",
+    "    n_img = full_patterns.shape[0]\n",
+    "    n_vox = full_patterns.shape[1]\n",
+    "\n",
+    "    # if an fMRI experiment takes an hour, you usually wouldn't run \n",
+    "    # the scanner for an hour straight\n",
+    "    # usually, you would run it for a block of time (several minutes) \n",
+    "    # called a 'run'\n",
+    "    # each run contains a chunk of the experiment\n",
+    "    # if there are several conditions in your experiment, usually you \n",
+    "    # try to put each condition within each run\n",
+    "    # Haxby et al had 8 experimental conditions, one condition for each \n",
+    "    # of the 8 categories they used - they had 12 runs, and within each \n",
+    "    # run they presented a block of images from the each category.\n",
+    "    n_runs = 12\n",
+    "\n",
+    "    ### processing the experimental design ###\n",
+    "    \n",
+    "    # Haxby et al. provide a text file 'labels.txt' which says when \n",
+    "    # they presented items from one category or another\n",
+    "    # labels.txt has 1453 lines.  \n",
+    "    # the first line is header information  \n",
+    "    # then there are 1452 lines, one for each image, saying what was \n",
+    "    # happening in the experiment at that time point\n",
+    "    # each line specifies the category name / condition, and the run \n",
+    "    # number (though the header calls this \"chunks\")\n",
+    "    # aside from the 8 categories, there is also time when the screen was \n",
+    "    # blank, in between category presentations\n",
+    "    # they call this 'rest'; we will exclude rest images from our classification\n",
+    "\n",
+    "    # a bunch of items from the same category would be presented one \n",
+    "    # after another\n",
+    "    # so if you look at labels.txt, you'll see there will be 9 lines in a \n",
+    "    # row that all say 'scissors'\n",
+    "\n",
+    "    # read the labels.txt file\n",
+    "    fid = open(dirpath + 'labels.txt', 'r')\n",
+    "    # this command reads in the first line of the file, the header, \n",
+    "    # which we don't need \n",
+    "    temp = fid.readline()\n",
+    "\n",
+    "    # these are the 9 different strings that appear in labels.txt\n",
+    "    cond_names = ['face', 'house', 'cat', 'shoe', 'scissors', 'bottle', \n",
+    "                  'scrambledpix', 'chair', 'rest']\n",
+    "    # this will store the 'one-hot' target values for the classifier\n",
+    "    all_targets = np.zeros([n_img, len(cond_names)])\n",
+    "    # this will store the run index\n",
+    "    all_runs = np.zeros([n_img,])\n",
+    "\n",
+    "    # now we iterate through the 1452 lines in labels.txt\n",
+    "    # line.split breaks the string into 2 parts\n",
+    "    # the first is 'this_cond' which says which category/condition (or rest)\n",
+    "    # the second is 'this_run' which tells you the functional run of this image \n",
+    "    imgcount = 0\n",
+    "    for line in fid:\n",
+    "        temp = line.split()\n",
+    "        this_cond = temp[0]\n",
+    "        this_run = temp[1]\n",
+    "        all_targets[imgcount, cond_names.index(this_cond)] = 1\n",
+    "        all_runs[imgcount] = int(this_run)\n",
+    "        imgcount += 1\n",
+    "\n",
+    "    ### cheap version of accounting for the hemodynamic lag ###\n",
+    "\n",
+    "    # as we reviewed in lecture, there is a lag from when a stimulus is \n",
+    "    # presented, to when the brain's vasculature has its peak response\n",
+    "    # one can properly take this hemodynamic lag into account, but we \n",
+    "    # are going to do a short-cut\n",
+    "    # if each image takes 2.5 seconds to acquire, and it takes about 5 \n",
+    "    # seconds for the brain to reach its peak response, we can shift the \n",
+    "    # condition labels forward by two images\n",
+    "    # an easy way to do this is to concatenate 2 rows of zeros at the \n",
+    "    # beginning of the targets matrix and then remove 2 rows of zeros \n",
+    "    # from the end of the targets matrix\n",
+    "    # that pushes every label forward by 5 seconds\n",
+    "    \n",
+    "    # just shift all the regressors over by 2 time points\n",
+    "    # each image takes 2.5 seconds to acquire\n",
+    "    prepend_zeros = np.zeros([2, all_targets.shape[1]])\n",
+    "    shift_all_targets = np.concatenate((prepend_zeros, all_targets))\n",
+    "    mask = np.ones(shift_all_targets.shape[0], dtype=bool)\n",
+    "    mask[shift_all_targets.shape[0]-2:shift_all_targets.shape[0]] = False\n",
+    "    shift_all_targets = shift_all_targets[mask, :]\n",
+    "    \n",
+    "    # now that we are done just replace the original target labels \n",
+    "    # with the shifted ones\n",
+    "    all_targets = shift_all_targets\n",
+    "\n",
+    "    ### remove rests from runs ###\n",
+    "    \n",
+    "    # modify the labels matrix\n",
+    "    # remove the rest unit, we don't want to classify rest patterns\n",
+    "    temp_targets = all_targets[:, :8].copy()\n",
+    "    # get rid of images where there isn't a category being presented\n",
+    "    # and make it a boolean array\n",
+    "    label_present = np.sum(temp_targets, axis=1)> 0\n",
+    "\n",
+    "    # label_present is a boolean array indicating when a category is \n",
+    "    # being presented\n",
+    "    # we are using it as a mask to get rid of all the time-points \n",
+    "    # where nothing is being presented\n",
+    "    # in other words it gets rid of all the rest periods\n",
+    "    targets = temp_targets[label_present, :]\n",
+    "    patterns = full_patterns[label_present, :]\n",
+    "    runs = all_runs[label_present]\n",
+    "    \n",
+    "    ### z-scoring is a kind of normalization ###\n",
+    "    n_vox = patterns.shape[1]\n",
+    "    for i in range(n_vox):\n",
+    "        patterns[:,i] = (patterns[:,i] - patterns[:,i].mean()) / patterns[:,i].std()\n",
+    "\n",
+    "    # for a set of numbers, get the mean and standard deviation\n",
+    "    # subtract the mean off every number, divide every number \n",
+    "    # by the standard deviation\n",
+    "    # here we normalize our patterns using a temporal z-score,\n",
+    "    # meaning that we normalize the values for each voxel, across time    \n",
+    "    \n",
+    "    # here are the arrays you need to do classification\n",
+    "    return patterns, targets, runs"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "85e5a472-286d-4c22-b1f4-04d7b48bab5b",
+   "metadata": {},
+   "source": [
+    "patterns.shape, targets.shape, runs.shape<br>\n",
+    "864 : number of fMRI brain scans (onebrain scan per object image)<br>\n",
+    "32450 : number voxels in IT cortex (using an anatomical mask)<br>\n",
+    "8 : number of object categories (face, house, cat, shoe, scissors, bottle, scrambled, chair, rest)\n",
+    "\n",
+    "patterns: contains voxel (fMRI) data\n",
+    "\n",
+    "targets: contains the condition (category) associated with each fMRI scan\n",
+    "\n",
+    "runs: which \"run\" each scan is associated with"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "id": "60283587-270d-4431-8159-ce5e6d64935e",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "(864, 32450)\n",
+      "(864, 8)\n",
+      "(864,)\n"
+     ]
+    }
+   ],
+   "source": [
+    "# load Haxby et al. data (see slides on Brightspace)\n",
+    "\n",
+    "patterns, targets, runs = prep_haxby_data()\n",
+    "\n",
+    "print(patterns.shape)\n",
+    "print(targets.shape)\n",
+    "print(runs.shape)\n",
+    "\n",
+    "cond_names = ['face', 'house', 'cat', 'shoe', 'scissors', 'bottle',\n",
+    "              'scrambledpix', 'chair', 'rest']"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "9a92eb16-6b40-4254-8a8b-e23c991d3e06",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  },
+  {
+   "cell_type": "markdown",
+   "id": "d45a8be1-ab6a-4a66-b781-7a0f6f86fabe",
+   "metadata": {},
+   "source": [
+    "<hr>\n",
+    "\n",
+    "#### \"feature selection\"\n",
+    "\n",
+    "with \"feature selection\", selecting voxels that modulate statistically significantly according to object category"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "id": "7ec0f3e5-8b6f-4605-b387-1c1509d0838e",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# \"feature selection\" based on picking statistically significant voxels\n",
+    "\n",
+    "def feature_selection(train_pats, train_targs, test_pats):\n",
+    "    pval = 0.1\n",
+    "    \n",
+    "    keep_these = np.zeros((train_pats.shape[1],))\n",
+    "    \n",
+    "    # loop through every voxel\n",
+    "    for v in range(train_pats.shape[1]):\n",
+    "        groups = []\n",
+    "        for c in range(train_targets.shape[1]):\n",
+    "            groups.append(train_pats[train_targs[:, c] == 1., v])\n",
+    "           \n",
+    "        # and statistically analyze it for category modulation\n",
+    "        temp = sps.f_oneway(groups[0], groups[1], groups[2], groups[3],\n",
+    "                            groups[4], groups[5], groups[6], groups[7])\n",
+    "\n",
+    "        if temp.pvalue < pval:\n",
+    "            keep_these[v] = 1.\n",
+    "    \n",
+    "    keep_these = keep_these.astype(bool)\n",
+    "    train_pats = train_pats[:, keep_these]\n",
+    "    test_pats = test_pats[:, keep_these]\n",
+    "    \n",
+    "    return train_pats, test_pats"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "95313beb-f17b-43d9-8756-77aa874a4d9c",
+   "metadata": {},
+   "source": [
+    "<hr>\n",
+    "\n",
+    "#### some starting points for Q1 \n",
+    "\n",
+    "(see slides on Brightspace from class for details)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "id": "80fc8f82-85fd-42e3-9236-093d1a205a39",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# an example \"leaving out\" a particular run\n",
+    "\n",
+    "example_test_run = 1\n",
+    "\n",
+    "train_these = runs != example_test_run\n",
+    "test_these  = runs == example_test_run\n",
+    "\n",
+    "# an example of logical indexing\n",
+    "train_patterns = patterns[train_these, :]\n",
+    "train_targets = targets[train_these, :]\n",
+    "\n",
+    "test_patterns = patterns[test_these, :]\n",
+    "test_targets = targets[test_these, :]"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "id": "f78a9fa6-7ddc-441a-9612-e48fbd9bc013",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# \"feature selection\" of statistically category-modulated voxels\n",
+    "\n",
+    "fs_train_patterns, fs_test_patterns = feature_selection(train_patterns,\n",
+    "                                                        train_targets,\n",
+    "                                                        test_patterns)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 7,
+   "id": "ad2dadaf-48dd-42fa-a3cd-c4371aa4bc94",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "(792, 12763)\n",
+      "(792, 8)\n",
+      "(72, 12763)\n",
+      "(72, 8)\n"
+     ]
+    }
+   ],
+   "source": [
+    "print(fs_train_patterns.shape)\n",
+    "print(train_targets.shape)\n",
+    "print(fs_test_patterns.shape)\n",
+    "print(test_targets.shape)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 8,
+   "id": "6a2fce4a-41af-4385-a528-9cec3726cc31",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "12\n",
+      "12763\n",
+      "8\n"
+     ]
+    }
+   ],
+   "source": [
+    "# report some metrics on Haxby experiment (n_vox is for this fold)\n",
+    "\n",
+    "n_runs = np.max(runs).astype('int') + 1\n",
+    "n_vox  = fs_train_patterns.shape[1]\n",
+    "n_cats = targets.shape[1]\n",
+    "\n",
+    "cond_names = ['face', 'house', 'cat', 'shoe', 'scissors', 'bottle', \n",
+    "              'scrambledpix', 'chair', 'rest']\n",
+    "\n",
+    "print(n_runs)\n",
+    "print(n_vox)\n",
+    "print(n_cats)"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "92d8498f-2ef4-49e5-8b81-a6f1dfc4a89e",
+   "metadata": {
+    "tags": []
+   },
+   "source": [
+    "just an input and an output, but it should be using softmax, categorical cross entropy\n",
+    "there are NO hidden layers\n",
+    "-don't think about validation or validation loss --> CAN ONLY DO CROSS-VALIDATION\n",
+    "-left out training epoch\n",
+    "-how does this do overall?\n",
+    " -within each run, how does it do with each category\n",
+    " -averaging everything so that you get 8 values\n",
+    " -for all the runs for faces, for shoes"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "063829e9-08ec-4399-ba2a-e5c505ec3b24",
+   "metadata": {},
+   "source": [
+    "## Q1A"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 14,
+   "id": "f6b27d2c-31de-4451-8d04-d44c1b562474",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "n_iters = 5\n",
+    "n_runs = 12\n",
+    "\n",
+    "def pattern_classification (n_iters, n_runs, patterns, targets): \n",
+    "    \n",
+    "    #create a list to store the number of accuracies per category per run\n",
+    "    iters_list = []\n",
+    "    \n",
+    "    for i in range (n_iters):\n",
+    "       \n",
+    "        #create a list to store the number of accuracies per per run\n",
+    "        runs_list = []\n",
+    "    \n",
+    "        for r in range (n_runs):\n",
+    "        \n",
+    "            #set up the fold r\n",
+    "            run_out = r\n",
+    "            train_these = runs != run_out\n",
+    "            test_these  = runs == run_out\n",
+    "            train_patterns = patterns[train_these, :]\n",
+    "            train_targets = targets[train_these, :]\n",
+    "            test_patterns = patterns[test_these, :]\n",
+    "            test_targets = targets[test_these, :]\n",
+    "        \n",
+    "            #do feature selection on this fold\n",
+    "            fs_train_patterns, fs_test_patterns = feature_selection(train_patterns, train_targets, test_patterns)\n",
+    "        \n",
+    "            #input and output node size\n",
+    "            nin = fs_train_patterns.shape[1]\n",
+    "            nout = train_targets.shape[1]\n",
+    "        \n",
+    "            #create linear classifier in Keras\n",
+    "            network = models.Sequential()\n",
+    "            network.add(layers.Dense(nout, kernel_regularizer=tf.keras.regularizers.l2(0.001), activation='softmax', input_shape=(nin,)))\n",
+    "        \n",
+    "            #compiles the network\n",
+    "            network.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])\n",
+    "        \n",
+    "            #history of the network\n",
+    "            history = network.fit(fs_train_patterns, train_targets, verbose=False, epochs=25, batch_size=80)\n",
+    "        \n",
+    "            #creates the number of rows per category; in this case iterations = 9 \n",
+    "            iterations = int ((fs_test_patterns.shape[0])/(test_targets.shape[1]))\n",
+    "            \n",
+    "            #creates a list containing the accuracies per category\n",
+    "            acc_list = []\n",
+    "            \n",
+    "            #creates a list that \n",
+    "            ones_list = []\n",
+    "            #sets up a for loop that goes through only 8 times\n",
+    "            for i in range (test_targets.shape[1]):\n",
+    "                index_0 = int (iterations * i)\n",
+    "                index_1 = int (iterations + (iterations * i))\n",
+    "                \n",
+    "                #network evaluates based on a certain number of test_patterns and test_targets\n",
+    "                accs = network.evaluate(fs_test_patterns[index_0:index_1], test_targets[index_0:index_1], verbose=False)\n",
+    "                \n",
+    "                new_one = int (np.where(test_targets[index_0] == 1)[0])\n",
+    "                \n",
+    "                #appends the values to the following lists below\n",
+    "                ones_list.append(new_one)\n",
+    "                acc_list.append(accs[1])\n",
+    "            \n",
+    "            #appends the accuracy lists to the runs list (will be a list of lists)\n",
+    "            runs_list.append(acc_list)\n",
+    "        \n",
+    "        #appends the runs lists to the iters list (will be a list of lists of lists)\n",
+    "        iters_list.append(runs_list)\n",
+    "        \n",
+    "        #converts this to an array\n",
+    "        iters_list_array = np.asarray(iters_list)\n",
+    "        \n",
+    "    #report average classification performance\n",
+    "    avg_classification_performance = 100 * (np.sum(iters_list_array)/(iters_list_array.shape[0]*iters_list_array.shape[1]*iters_list_array.shape[2]))\n",
+    "\n",
+    "    #report average classification for each object category\n",
+    "    avg_category = iters_list_array.sum(axis=(0, 1))/(iters_list_array.shape[0] * iters_list_array.shape[1])*100\n",
+    "        \n",
+    "    ones_list = np.asarray(ones_list)\n",
+    "    \n",
+    "    return (avg_classification_performance, avg_category, ones_list, test_targets)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 10,
+   "id": "4663bcbd-5dca-44dc-a6a9-2fc766419954",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "WARNING:tensorflow:From /Users/shivasenthilkumar/opt/anaconda3/envs/NSC3270env/lib/python3.7/site-packages/tensorflow/python/ops/init_ops.py:1251: calling VarianceScaling.__init__ (from tensorflow.python.ops.init_ops) with dtype is deprecated and will be removed in a future version.\n",
+      "Instructions for updating:\n",
+      "Call initializer instance with the dtype argument instead of passing it to the constructor\n"
+     ]
+    }
+   ],
+   "source": [
+    "#anwsers Q1; calls the function + prints overall accuracy and accuracy per category\n",
+    "classification = pattern_classification (n_iters, n_runs, patterns, targets)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 11,
+   "id": "2bf5d7d7-f6bf-4275-9bd7-90085ce72c74",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Average Accuracy Overall: 46.6435178120931%\n",
+      "\n",
+      "Average Accuracy for face: 55.555557%\n",
+      "Average Accuracy for house: 66.11112%\n",
+      "Average Accuracy for cat: 24.629631%\n",
+      "Average Accuracy for shoe: 40.000004%\n",
+      "Average Accuracy for scissors: 39.62963%\n",
+      "Average Accuracy for bottle: 44.999996%\n",
+      "Average Accuracy for scrambledpix: 46.851864%\n",
+      "Average Accuracy for chair: 55.370373%\n"
+     ]
+    }
+   ],
+   "source": [
+    "#prints out the average accuracy overall by accessing the first index of classification\n",
+    "print(\"Average Accuracy Overall: \" + str (classification[0]) + \"%\\n\")\n",
+    "\n",
+    "#prints out the accuracy per category through making sure that the labels are paired correctly to the percentages\n",
+    "for i in range(test_targets.shape[1]):\n",
+    "    location = int (np.where(classification[2] == i)[0])\n",
+    "    print(\"Average Accuracy for \" + cond_names[i] + \": \" + str (classification[1][location]) + \"%\")"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "6f4f90c9",
+   "metadata": {},
+   "source": [
+    "<font color='red'>\n",
+    "Need variability in performance across runs -1\n",
+    "</font>"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "4977678a-e405-4651-ba68-db4770a1be8b",
+   "metadata": {},
+   "source": [
+    "<hr>\n",
+    "\n",
+    "#### Function to Scramble Target for Permutation Test\n",
+    "\n",
+    "(as described in class)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 12,
+   "id": "04ea2870-1fbd-49d1-9d71-e02e85d728fd",
+   "metadata": {},
+   "outputs": [],
+   "source": [
+    "# how to scramble the category labels for a permutation analysis\n",
+    "\n",
+    "def scramble_targets(targets, target\n",
+    "                    ):\n",
+    "    # there are 12 runs\n",
+    "    n_runs = np.max(runs).astype('int') + 1\n",
+    "    \n",
+    "    # there are 8 categories\n",
+    "    n_cats = targets.shape[1]\n",
+    "    \n",
+    "    # this will contain the scrambled category labels\n",
+    "    scram_targets = np.zeros(targets.shape)\n",
+    "    \n",
+    "    for i in range(n_runs):\n",
+    "        # first find the category labels just for this run\n",
+    "        these_targets = targets[runs==i, :].copy()\n",
+    "        \n",
+    "        # this shuffles the columns of these_targets, which preserves \n",
+    "        # the block structure of the experiment\n",
+    "        scram_targets_this_run = these_targets[:, np.random.permutation(n_cats)]\n",
+    "        \n",
+    "        # this copies the scrambled targets for this run into the \n",
+    "        # appropriate rows of the scrambled category labels matrix\n",
+    "        scram_targets[runs==i,:] = scram_targets_this_run\n",
+    "\n",
+    "    return scram_targets"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "id": "b2475b25-46d3-4acc-94d2-15d3032314b7",
+   "metadata": {},
+   "source": [
+    "## Q1B"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 13,
+   "id": "a59b6fbe-e139-45db-89c7-d79df5975771",
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Permutation 1 Scrambled Accuracy: 13.472223281860352%\n",
+      "Permutation 2 Scrambled Accuracy: 10.902778307596844%\n",
+      "Permutation 3 Scrambled Accuracy: 11.597223281860352%\n",
+      "Permutation 4 Scrambled Accuracy: 14.398148854573567%\n",
+      "Permutation 5 Scrambled Accuracy: 12.731482982635498%\n",
+      "Permutation 6 Scrambled Accuracy: 13.657407760620115%\n",
+      "Permutation 7 Scrambled Accuracy: 11.435185273488363%\n",
+      "Permutation 8 Scrambled Accuracy: 11.666667461395264%\n",
+      "Permutation 9 Scrambled Accuracy: 10.300925572713217%\n",
+      "Permutation 10 Scrambled Accuracy: 14.95370388031006%\n",
+      "The highest accuracy from this permutation sequence is 14.95370388031006%\n",
+      "The lowest accuracy from this permutation sequence is 10.300925572713217%\n",
+      "The observed, original accuracy is: 46.6435178120931%\n"
+     ]
+    }
+   ],
+   "source": [
+    "#number of permutations\n",
+    "n_perms = 10\n",
+    "\n",
+    "#empty list for the permutations average\n",
+    "permutations_average = []\n",
+    "\n",
+    "#calculations the scrambled accuracy per permutation\n",
+    "for p in range (n_perms):\n",
+    "    new_targets = scramble_targets(targets, n_runs)\n",
+    "    new_classifications = pattern_classification (n_iters, n_runs, patterns, new_targets)\n",
+    "    permutations_average.append(new_classifications[0])\n",
+    "    print (\"Permutation \" + str (p+1) + \" Scrambled Accuracy: \" + str(permutations_average[p]) + \"%\")\n",
+    "\n",
+    "permutations_average = np.asarray(permutations_average)\n",
+    "print (\"The highest accuracy from this permutation sequence is \" + str (np.max(permutations_average)) + \"%\")\n",
+    "print (\"The lowest accuracy from this permutation sequence is \" + str (np.min(permutations_average)) + \"%\")\n",
+    "print (\"The observed, original accuracy is: \" + str (classification[0]) + \"%\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "id": "d206590d-febf-4773-9747-c6cd0f1e99c3",
+   "metadata": {},
+   "outputs": [],
+   "source": []
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": "Python 3",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.7.11"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
+}
